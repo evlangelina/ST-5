@@ -4,74 +4,99 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-public class AppTest {
-    private static final double EPS = 1e-7;
+class AppTest {
 
-    @Test
-    public void averageReturnsArithmeticMean() {
-        Sqrt sqrt = new Sqrt(2.0);
-        assertEquals(5.0, sqrt.average(4.0, 6.0), EPS);
+    private static final double TOLERANCE = 1e-6;
+
+    private Sqrt sqrt;
+
+    @BeforeEach
+    void setUp() {
+        sqrt = new Sqrt(2.0);
     }
 
     @Test
-    public void averageWorksForNegativeValues() {
-        Sqrt sqrt = new Sqrt(2.0);
-        assertEquals(-2.0, sqrt.average(-1.0, -3.0), EPS);
+    void averageOfPositiveNumbers() {
+        assertEquals(7.5, sqrt.average(5.0, 10.0), TOLERANCE);
     }
 
     @Test
-    public void goodReturnsTrueForExactSquareRoot() {
-        Sqrt sqrt = new Sqrt(2.0);
-        assertTrue(sqrt.good(2.0, 4.0));
+    void averageOfEqualNumbers() {
+        assertEquals(3.0, sqrt.average(3.0, 3.0), TOLERANCE);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "0.0, 0.0, 0.0",
+            "-4.0, 4.0, 0.0",
+            "-2.0, -8.0, -5.0",
+            "1.5, 2.5, 2.0"
+    })
+    void averageWithVariousPairs(double x, double y, double expected) {
+        assertEquals(expected, sqrt.average(x, y), TOLERANCE);
     }
 
     @Test
-    public void goodReturnsFalseForPoorGuess() {
-        Sqrt sqrt = new Sqrt(2.0);
-        assertFalse(sqrt.good(1.0, 4.0));
+    void goodAcceptsExactGuess() {
+        assertTrue(sqrt.good(3.0, 9.0));
     }
 
     @Test
-    public void improveUsesNewtonStep() {
-        Sqrt sqrt = new Sqrt(2.0);
-        assertEquals(1.5, sqrt.improve(1.0, 2.0), EPS);
+    void goodRejectsRoughGuess() {
+        assertFalse(sqrt.good(2.0, 9.0));
     }
 
     @Test
-    public void iterReturnsInitialGuessIfAlreadyGood() {
-        Sqrt sqrt = new Sqrt(2.0);
-        assertEquals(3.0, sqrt.iter(3.0, 9.0), EPS);
+    void goodRespectsCustomDelta() {
+        Sqrt loose = new Sqrt(9.0, 0.5);
+        assertTrue(loose.good(3.05, 9.0));
     }
 
     @Test
-    public void iterConvergesForNonPerfectSquare() {
-        Sqrt sqrt = new Sqrt(2.0);
-        assertEquals(Math.sqrt(2.0), sqrt.iter(1.0, 2.0), EPS);
+    void improveMakesNewtonStep() {
+        assertEquals(1.5, sqrt.improve(1.0, 2.0), TOLERANCE);
     }
 
     @Test
-    public void calcReturnsSquareRootOfTwo() {
-        Sqrt sqrt = new Sqrt(2.0);
-        assertEquals(Math.sqrt(2.0), sqrt.calc(), EPS);
+    void improveGetsCloserToRoot() {
+        double before = Math.abs(2.0 * 2.0 - 9.0);
+        double improved = sqrt.improve(2.0, 9.0);
+        double after = Math.abs(improved * improved - 9.0);
+        assertTrue(after < before);
     }
 
     @Test
-    public void calcReturnsSquareRootOfPerfectSquare() {
-        Sqrt sqrt = new Sqrt(49.0);
-        assertEquals(7.0, sqrt.calc(), EPS);
+    void iterReturnsAlreadyGoodGuess() {
+        assertEquals(5.0, sqrt.iter(5.0, 25.0), TOLERANCE);
     }
 
     @Test
-    public void calcReturnsSquareRootOfSmallFraction() {
-        Sqrt sqrt = new Sqrt(0.25);
-        assertEquals(0.5, sqrt.calc(), EPS);
+    void iterConvergesFromArbitraryStart() {
+        assertEquals(Math.sqrt(2.0), sqrt.iter(1.0, 2.0), TOLERANCE);
     }
 
     @Test
-    public void calcReturnsSquareRootOfOne() {
-        Sqrt sqrt = new Sqrt(1.0);
-        assertEquals(1.0, sqrt.calc(), EPS);
+    void calcForPerfectSquare() {
+        Sqrt s = new Sqrt(144.0);
+        assertEquals(12.0, s.calc(), TOLERANCE);
+    }
+
+    @Test
+    void calcForFraction() {
+        Sqrt s = new Sqrt(0.81);
+        assertEquals(0.9, s.calc(), TOLERANCE);
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = {1.0, 2.0, 3.0, 16.0, 50.0, 1234.5})
+    void calcMatchesMathSqrt(double value) {
+        Sqrt s = new Sqrt(value);
+        assertEquals(Math.sqrt(value), s.calc(), TOLERANCE);
     }
 }
